@@ -10,7 +10,6 @@ from datetime import datetime
 import zipfile
 import tempfile
 import os
-import requests
 
 # ====================== IMPORTANT FOR STREAMLIT CLOUD ======================
 # Use relative path for Streamlit Cloud
@@ -269,9 +268,10 @@ def t(key):
     return UI_TRANSLATIONS['English'].get(key, key)
 
 def translate_to_hindi(text):
-    """Simple English to Hindi translation using a basic dictionary"""
-    # Common legal terms translation dictionary
+    """Simple English to Hindi translation using a comprehensive dictionary"""
+    # Comprehensive legal terms translation dictionary
     translation_dict = {
+        # Complete sentences from your document
         "Who is considered the founder of the Analytical School of Jurisprudence?": "विश्लेषणात्मक विधिशास्त्र विद्यालय के संस्थापक कौन माने जाते हैं?",
         "What is Austin's definition of law?": "ऑस्टिन की विधि की परिभाषा क्या है?",
         "What are the main features of the Analytical School?": "विश्लेषणात्मक विद्यालय की मुख्य विशेषताएं क्या हैं?",
@@ -283,7 +283,19 @@ def translate_to_hindi(text):
         "What is Maine's famous theory about the evolution of law?": "विधि के विकास के बारे में मेन का प्रसिद्ध सिद्धांत क्या है?",
         "Compare Analytical and Historical Schools in one line.": "एक पंक्ति में विश्लेषणात्मक और ऐतिहासिक विद्यालयों की तुलना करें।",
         
-        # Common words
+        # Answers from your document
+        "John Austin (1790-1859), an English jurist, is regarded as the founder.": "जॉन ऑस्टिन (1790-1859), एक अंग्रेज़ न्यायविद्, को विश्लेषणात्मक विधिशास्त्र विद्यालय का संस्थापक माना जाता है।",
+        "Law is the command of the sovereign backed by sanctions. It is a rule laid down by a political superior to political inferiors.": "विधि संप्रभु का आदेश है जो दंड द्वारा समर्थित होता है। यह राजनीतिक श्रेष्ठ द्वारा राजनीतिक अधीनस्थों पर लागू किया गया नियम है।",
+        "- Focus on law as it IS, not as it ought to be.\n- Law is a command of the sovereign.\n- Separation of law from morality.\n- Emphasis on sanctions and enforceability.": "- विधि को जैसा है वैसा ही देखना, जैसा होना चाहिए वैसा नहीं।\n- विधि संप्रभु का आदेश है।\n- विधि और नैतिकता को अलग करना।\n- दंड और प्रवर्तन पर बल देना।",
+        "H.L.A. Hart (criticized Austin's command theory, proposing the 'rule of recognition') and Sir Henry Maine (emphasized historical evolution of law).": "एच.एल.ए. हार्ट (ऑस्टिन के आदेश सिद्धांत की आलोचना की और 'मान्यता का नियम' प्रस्तावित किया) तथा सर हेनरी मेन (विधि के ऐतिहासिक विकास पर बल दिया)।",
+        "It studies the origin and development of law as a product of social customs, traditions, and the collective consciousness of the people.": "यह विधि की उत्पत्ति और विकास का अध्ययन करता है, जिसे सामाजिक रीति-रिवाजों, परंपराओं और जनचेतना का परिणाम माना जाता है।",
+        "Friedrich Carl von Savigny (1779-1861), a German jurist.": "फ्रेडरिक कार्ल वॉन सैविनी (1779-1861), एक जर्मन न्यायविद्, को ऐतिहासिक विधिशास्त्र विद्यालय का जनक माना जाता है।",
+        "Savigny argued that law grows with the people and should evolve naturally from customs and Volksgeist (spirit of the people), not be imposed artificially.": "सैविनी ने कहा कि विधि जनता के साथ बढ़ती है और इसे रीति-रिवाजों तथा 'वोल्क्सगाइस्ट' (जन-आत्मा) से स्वाभाविक रूप से विकसित होना चाहिए, इसे कृत्रिम रूप से लागू नहीं किया जाना चाहिए।",
+        "Sir Henry Maine (1822-1888), author of 'Ancient Law'.": "सर हेनरी मेन (1822-1888), 'एंशिएंट लॉ' के लेखक।",
+        "Law evolves from 'Status to Contract' --- societies move from relationships based on fixed status (family, caste) to voluntary agreements (contracts).": "विधि 'स्थिति से अनुबंध' की ओर विकसित होती है --- समाज स्थायी स्थिति (परिवार, जाति) पर आधारित संबंधों से स्वेच्छा से किए गए अनुबंधों की ओर बढ़ता है।",
+        "Analytical School: Law = sovereign command.\nHistorical School: Law = evolving from customs and social traditions.": "विश्लेषणात्मक विद्यालय: विधि = संप्रभु का आदेश।\nऐतिहासिक विद्यालय: विधि = रीति-रिवाजों और सामाजिक परंपराओं से विकसित।",
+        
+        # Common words and phrases
         "founder": "संस्थापक",
         "Analytical School": "विश्लेषणात्मक विद्यालय",
         "Jurisprudence": "विधिशास्त्र",
@@ -316,25 +328,107 @@ def translate_to_hindi(text):
         "about": "के बारे में",
         "the": "",
         "of": "का",
-        "and": "और"
+        "and": "और",
+        "is": "है",
+        "are": "हैं",
+        "was": "था",
+        "command": "आदेश",
+        "sovereign": "संप्रभु",
+        "sanctions": "दंड",
+        "rule": "नियम",
+        "laid down": "लागू किया गया",
+        "political": "राजनीतिक",
+        "superior": "श्रेष्ठ",
+        "inferiors": "अधीनस्थ",
+        "focus": "ध्यान",
+        "as it IS": "जैसा है",
+        "as it ought to be": "जैसा होना चाहिए",
+        "separation": "अलग करना",
+        "morality": "नैतिकता",
+        "emphasis": "बल देना",
+        "enforceability": "प्रवर्तन",
+        "studies": "अध्ययन करता है",
+        "origin": "उत्पत्ति",
+        "development": "विकास",
+        "product": "परिणाम",
+        "social customs": "सामाजिक रीति-रिवाज",
+        "traditions": "परंपराएं",
+        "collective consciousness": "जनचेतना",
+        "people": "जनता",
+        "German": "जर्मन",
+        "grows": "बढ़ती है",
+        "evolve": "विकसित होना",
+        "naturally": "स्वाभाविक रूप से",
+        "customs": "रीति-रिवाज",
+        "Volksgeist": "वोल्क्सगाइस्ट",
+        "spirit of the people": "जन-आत्मा",
+        "imposed": "लागू किया",
+        "artificially": "कृत्रिम रूप से",
+        "author": "लेखक",
+        "Ancient Law": "एंशिएंट लॉ",
+        "evolves": "विकसित होती है",
+        "Status to Contract": "स्थिति से अनुबंध",
+        "societies": "समाज",
+        "move": "बढ़ता है",
+        "relationships": "संबंध",
+        "based on": "पर आधारित",
+        "fixed status": "स्थायी स्थिति",
+        "family": "परिवार",
+        "caste": "जाति",
+        "voluntary": "स्वेच्छा से",
+        "agreements": "अनुबंध",
+        "contracts": "अनुबंध",
+        "sovereign command": "संप्रभु का आदेश",
+        "evolving": "विकसित होना",
+        "social traditions": "सामाजिक परंपराएं"
     }
     
     # Try to find full sentence translation first
     if text in translation_dict:
         return translation_dict[text]
     
-    # If not found, try to translate word by word
-    translated_words = []
-    words = text.split()
-    for word in words:
-        # Clean word (remove punctuation)
-        clean_word = word.strip('.,?!"\'()[]{}:;')
-        if clean_word in translation_dict:
-            translated_words.append(translation_dict[clean_word])
+    # Try to find translation line by line for multiline text
+    lines = text.split('\n')
+    translated_lines = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            translated_lines.append("")
+            continue
+            
+        # Check for bullet points
+        if line.startswith('- '):
+            bullet_text = line[2:].strip()
+            if bullet_text in translation_dict:
+                translated_lines.append(f"- {translation_dict[bullet_text]}")
+            else:
+                # Try to translate word by word
+                translated_words = []
+                words = bullet_text.split()
+                for word in words:
+                    clean_word = word.strip('.,?!"\'()[]{}:;')
+                    if clean_word in translation_dict:
+                        translated_words.append(translation_dict[clean_word])
+                    else:
+                        translated_words.append(word)
+                translated_lines.append(f"- {' '.join(translated_words)}")
         else:
-            translated_words.append(word)
+            # Check for entire line translation
+            if line in translation_dict:
+                translated_lines.append(translation_dict[line])
+            else:
+                # Try to translate word by word
+                translated_words = []
+                words = line.split()
+                for word in words:
+                    clean_word = word.strip('.,?!"\'()[]{}:;')
+                    if clean_word in translation_dict:
+                        translated_words.append(translation_dict[clean_word])
+                    else:
+                        translated_words.append(word)
+                translated_lines.append(' '.join(translated_words))
     
-    return " ".join(translated_words)
+    return '\n'.join(translated_lines)
 
 def load_bilingual_flashcards(doc_path):
     """
@@ -731,14 +825,14 @@ def show_flashcards():
             # Display answer
             if st.session_state.language == 'Hindi':
                 # Display in Hindi - Use Hindi answer
-                st.markdown(f"""<div style='color:red; font-size:30px; padding:20px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>उत्तर:</strong><br>{hindi_answer}</div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div style='color:red; font-size:20px; padding:15px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>उत्तर:</strong><br>{hindi_answer}</div>""", unsafe_allow_html=True)
                 
                 # Show English translation if enabled
                 if st.session_state.show_hindi:
                     st.markdown(f"*{t('original_text')}: {english_answer}*")
             else:  # English
                 # Display in English
-                st.markdown(f"""<div style='color:red; font-size:30px; padding:20px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>A:</strong><br>{english_answer}</div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div style='color:red; font-size:20px; padding:15px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>A:</strong><br>{english_answer}</div>""", unsafe_allow_html=True)
                 
                 # Show Hindi translation if enabled
                 if st.session_state.show_hindi:
