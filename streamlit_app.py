@@ -270,18 +270,17 @@ def t(key):
 def load_bilingual_flashcards(doc_path):
     """
     Reads the Word document and extracts bilingual Q&A pairs.
-    Expected format:
+    Expected format (as in your document):
     Q: English question
     A: English answer
-    Q (हिंदी): Hindi question
-    A (हिंदी): Hindi answer
+    A (हिंदी): Hindi answer (Hindi question is same as English)
+    Q: Next English question...
     """
     try:
         document = Document(doc_path)
         cards = []
         english_question = None
         english_answer = None
-        hindi_question = None
         hindi_answer = None
 
         for para in document.paragraphs:
@@ -291,32 +290,33 @@ def load_bilingual_flashcards(doc_path):
 
             # Check for English question
             if text.startswith("Q:") and "(हिंदी)" not in text:
-                english_question = text[2:].strip()
-            # Check for English answer
-            elif text.startswith("A:") and "(हिंदी)" not in text and english_question:
-                english_answer = text[2:].strip()
-            # Check for Hindi question
-            elif "Q" in text and "(हिंदी)" in text:
-                # Extract Hindi question text
-                hindi_question = text.split(":", 1)[1].strip() if ":" in text else text.replace("Q (हिंदी)", "").strip()
-            # Check for Hindi answer
-            elif "A" in text and "(हिंदी)" in text and hindi_question:
-                # Extract Hindi answer text
-                hindi_answer = text.split(":", 1)[1].strip() if ":" in text else text.replace("A (हिंदी)", "").strip()
-                
-                # If we have both English and Hindi, create a bilingual card
+                # If we already have a complete card, save it
                 if english_question and english_answer:
                     cards.append({
                         'english': (english_question, english_answer),
-                        'hindi': (hindi_question if hindi_question else english_question, 
-                                 hindi_answer if hindi_answer else english_answer)
+                        'hindi': (english_question, hindi_answer if hindi_answer else english_answer)
                     })
-                    
-                    # Reset for next card
-                    english_question = None
-                    english_answer = None
-                    hindi_question = None
-                    hindi_answer = None
+                
+                # Start new card
+                english_question = text[2:].strip()
+                english_answer = None
+                hindi_answer = None
+            
+            # Check for English answer
+            elif text.startswith("A:") and "(हिंदी)" not in text and english_question:
+                english_answer = text[2:].strip()
+            
+            # Check for Hindi answer
+            elif "A" in text and "(हिंदी)" in text and english_question and english_answer:
+                # Extract Hindi answer text
+                hindi_answer = text.split(":", 1)[1].strip() if ":" in text else text.replace("A (हिंदी)", "").strip()
+        
+        # Don't forget to add the last card
+        if english_question and english_answer:
+            cards.append({
+                'english': (english_question, english_answer),
+                'hindi': (english_question, hindi_answer if hindi_answer else english_answer)
+            })
         
         if not cards:
             st.warning(t('no_flashcards'))
