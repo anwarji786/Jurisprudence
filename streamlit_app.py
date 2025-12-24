@@ -41,6 +41,40 @@ if not os.path.exists(DOC_PATH):
         st.stop()
 # ==========================================================================
 
+def load_flashcards(doc_path):
+    """
+    Reads the Word document and extracts Q&A pairs.
+    Expected format:
+    Q: Question text
+    A: Answer text
+    (Blank lines allowed between cards)
+    """
+    try:
+        document = Document(doc_path)
+        cards = []
+        question = None
+
+        for para in document.paragraphs:
+            text = para.text.strip()
+            if not text:
+                continue
+
+            if text.startswith("Q:"):
+                question = text[2:].strip()
+            elif text.startswith("A:") and question:
+                answer = text[2:].strip()
+                cards.append((question, answer))
+                question = None
+        
+        if not cards:
+            st.warning("⚠️ No flashcards found in the document. Please check the format.")
+            st.info("Expected format: 'Q: Your question' followed by 'A: Your answer' on separate lines.")
+        
+        return cards
+    except Exception as e:
+        st.error(f"Error reading document: {e}")
+        return []
+
 # Session state initialization
 if "cards" not in st.session_state:
     try:
@@ -78,40 +112,6 @@ if 'quiz_cards' not in st.session_state:
     st.session_state.quiz_cards = []
 if 'quiz_type' not in st.session_state:
     st.session_state.quiz_type = "Question to Answer"
-
-def load_flashcards(doc_path):
-    """
-    Reads the Word document and extracts Q&A pairs.
-    Expected format:
-    Q: Question text
-    A: Answer text
-    (Blank lines allowed between cards)
-    """
-    try:
-        document = Document(doc_path)
-        cards = []
-        question = None
-
-        for para in document.paragraphs:
-            text = para.text.strip()
-            if not text:
-                continue
-
-            if text.startswith("Q:"):
-                question = text[2:].strip()
-            elif text.startswith("A:") and question:
-                answer = text[2:].strip()
-                cards.append((question, answer))
-                question = None
-        
-        if not cards:
-            st.warning("⚠️ No flashcards found in the document. Please check the format.")
-            st.info("Expected format: 'Q: Your question' followed by 'A: Your answer' on separate lines.")
-        
-        return cards
-    except Exception as e:
-        st.error(f"Error reading document: {e}")
-        return []
 
 # 🚫 Remove emojis from text using regex
 def remove_emojis(text):
