@@ -142,7 +142,11 @@ UI_TRANSLATIONS = {
         'manual_translation': "Manual Translation",
         'save_translation': "💾 Save Translation",
         'translation_saved': "✅ Translation saved!",
-        'hindi_text_placeholder': "Type Hindi translation here..."
+        'hindi_text_placeholder': "Type Hindi translation here...",
+        'switch_to_hindi': "Switch to Hindi",
+        'switch_to_english': "Switch to English",
+        'current_language': "Current Language",
+        'language_switch': "🌐 Language Switch"
     },
     'Hindi': {
         'app_title': "एलएलबी तैयारी फ्लैशकार्ड्स वॉयसओवर के साथ",
@@ -243,7 +247,11 @@ UI_TRANSLATIONS = {
         'manual_translation': "मैनुअल अनुवाद",
         'save_translation': "💾 अनुवाद सहेजें",
         'translation_saved': "✅ अनुवाद सहेजा गया!",
-        'hindi_text_placeholder': "हिंदी अनुवाद यहाँ टाइप करें..."
+        'hindi_text_placeholder': "हिंदी अनुवाद यहाँ टाइप करें...",
+        'switch_to_hindi': "हिंदी में स्विच करें",
+        'switch_to_english': "अंग्रेज़ी में स्विच करें",
+        'current_language': "वर्तमान भाषा",
+        'language_switch': "🌐 भाषा स्विच"
     }
 }
 
@@ -255,30 +263,60 @@ def t(key):
     # Fallback to English if translation not found
     return UI_TRANSLATIONS['English'].get(key, key)
 
-def load_flashcards(doc_path):
+def load_bilingual_flashcards(doc_path):
     """
-    Reads the Word document and extracts Q&A pairs.
+    Reads the Word document and extracts bilingual Q&A pairs.
     Expected format:
-    Q: Question text
-    A: Answer text
-    (Blank lines allowed between cards)
+    Q: English question
+    A: English answer
+    Q (हिंदी): Hindi question
+    A (हिंदी): Hindi answer
     """
     try:
         document = Document(doc_path)
         cards = []
-        question = None
+        english_question = None
+        english_answer = None
+        hindi_question = None
+        hindi_answer = None
 
         for para in document.paragraphs:
             text = para.text.strip()
             if not text:
                 continue
 
-            if text.startswith("Q:"):
-                question = text[2:].strip()
-            elif text.startswith("A:") and question:
-                answer = text[2:].strip()
-                cards.append((question, answer))
-                question = None
+            # Check for English question
+            if text.startswith("Q:") and "(हिंदी)" not in text:
+                english_question = text[2:].strip()
+            # Check for English answer
+            elif text.startswith("A:") and "(हिंदी)" not in text and english_question:
+                english_answer = text[2:].strip()
+            # Check for Hindi question
+            elif text.startswith("Q") and "(हिंदी)" in text:
+                hindi_question = text.split(":", 1)[1].strip() if ":" in text else text
+            # Check for Hindi answer
+            elif text.startswith("A") and "(हिंदी)" in text and hindi_question:
+                hindi_answer = text.split(":", 1)[1].strip() if ":" in text else text
+                
+                # If we have both English and Hindi, create a bilingual card
+                if english_question and english_answer:
+                    cards.append({
+                        'english': (english_question, english_answer),
+                        'hindi': (hindi_question, hindi_answer) if hindi_question and hindi_answer else (english_question, english_answer)
+                    })
+                    
+                    # Reset for next card
+                    english_question = None
+                    english_answer = None
+                    hindi_question = None
+                    hindi_answer = None
+        
+        # If we have English cards but no Hindi translations, create them with English text
+        if not cards and english_question and english_answer:
+            cards.append({
+                'english': (english_question, english_answer),
+                'hindi': (english_question, english_answer)
+            })
         
         if not cards:
             st.warning(t('no_flashcards'))
@@ -302,7 +340,7 @@ if 'manual_translations' not in st.session_state:
 # Session state initialization
 if "cards" not in st.session_state:
     try:
-        st.session_state.cards = load_flashcards(DOC_PATH)
+        st.session_state.cards = load_bilingual_flashcards(DOC_PATH)
     except Exception as e:
         st.error(f"Error loading flashcards: {e}")
         st.session_state.cards = []
@@ -398,31 +436,6 @@ def text_to_speech(text, lang="en"):
         st.info("Note: Audio generation requires internet connection. Please try again.")
         return None
 
-# 🔤 Get Hindi translation (manual or fallback)
-def get_hindi_translation(english_text):
-    """Get Hindi translation from manual translations or return fallback"""
-    # Check manual translations first
-    if english_text in st.session_state.manual_translations:
-        hindi_text = st.session_state.manual_translations[english_text]
-        if hindi_text and hindi_text.strip():
-            return hindi_text
-    
-    # Check if we have a cached translation
-    if english_text in st.session_state.translations:
-        return st.session_state.translations[english_text]
-    
-    # Fallback: Return placeholder text
-    return t('translation_error')
-
-# 💾 Save manual translation
-def save_manual_translation(english_text, hindi_text):
-    """Save manual translation"""
-    if hindi_text and hindi_text.strip():
-        st.session_state.manual_translations[english_text] = hindi_text
-        st.session_state.translations[english_text] = hindi_text
-        return True
-    return False
-
 # ⏹️ Stop audio function
 def stop_audio():
     """Stop currently playing audio"""
@@ -469,33 +482,58 @@ def generate_bilingual_audio(english_text, hindi_text):
         st.error(f"Error generating bilingual audio: {e}")
         return None
 
+# Language switch function
+def switch_language():
+    """Switch between English and Hindi"""
+    if st.session_state.language == 'English':
+        st.session_state.language = 'Hindi'
+    else:
+        st.session_state.language = 'English'
+    st.rerun()
+
 # 🎴 Display flashcards with voiceover
 def show_flashcards():
     st.title(t('app_title'))
     
-    # Language and display controls in sidebar
+    # TOP MENU LANGUAGE SWITCH BUTTONS
+    # Create a container at the top for language switch buttons
+    with st.container():
+        col1, col2, col3 = st.columns([3, 2, 1])
+        
+        with col1:
+            st.markdown(f"### {t('current_language')}: **{t('english') if st.session_state.language == 'English' else t('hindi')}**")
+        
+        with col2:
+            st.markdown("### 🌐")
+        
+        with col3:
+            # Create two buttons side by side for language switching
+            btn_col1, btn_col2 = st.columns(2)
+            
+            with btn_col1:
+                if st.button(f"🇺🇸 {t('english')}", 
+                           type="primary" if st.session_state.language == 'English' else "secondary",
+                           use_container_width=True,
+                           key="switch_to_english"):
+                    st.session_state.language = 'English'
+                    st.rerun()
+            
+            with btn_col2:
+                if st.button(f"🇮🇳 {t('hindi')}", 
+                           type="primary" if st.session_state.language == 'Hindi' else "secondary",
+                           use_container_width=True,
+                           key="switch_to_hindi"):
+                    st.session_state.language = 'Hindi'
+                    st.rerun()
+        
+        st.markdown("---")
+    
+    # Display mode in sidebar (optional)
     with st.sidebar:
         st.markdown("---")
-        st.subheader(t('language'))
+        st.subheader(t('display_mode'))
         
-        # Language selection
-        lang_options = [t('english'), t('hindi')]
-        lang_index = 0 if st.session_state.language == 'English' else 1
-        
-        selected_lang = st.radio(
-            t('display_mode'),
-            lang_options,
-            index=lang_index,
-            label_visibility="collapsed"
-        )
-        
-        # Map selection to language
-        if selected_lang == t('english'):
-            st.session_state.language = 'English'
-        else:
-            st.session_state.language = 'Hindi'
-        
-        # Toggle for showing Hindi translation
+        # Toggle for showing both languages
         if st.session_state.language == 'English':
             st.session_state.show_hindi = st.checkbox(t('view_translation'), value=st.session_state.show_hindi)
         else:
@@ -508,7 +546,8 @@ def show_flashcards():
         st.write(f"**{t('document_info')}:** Law Preparation.docx")
         st.write(f"**{t('total_cards')}:** {len(st.session_state.cards)}")
         if st.session_state.cards:
-            st.write(f"**{t('sample_question')}:** {st.session_state.cards[0][0][:50]}...")
+            sample_question = st.session_state.cards[0]['english'][0]
+            st.write(f"**{t('sample_question')}:** {sample_question[:50]}...")
     
     # Global stop button in sidebar
     with st.sidebar:
@@ -526,41 +565,29 @@ def show_flashcards():
     else:
         # Current card
         idx = st.session_state.order[st.session_state.index]
-        question, answer = st.session_state.cards[idx]
+        card = st.session_state.cards[idx]
         
-        # Get Hindi translations
-        hindi_question = get_hindi_translation(question)
-        hindi_answer = get_hindi_translation(answer)
+        # Get English and Hindi content
+        english_question, english_answer = card['english']
+        hindi_question, hindi_answer = card['hindi']
         
         # Display based on language preference
         if st.session_state.language == 'Hindi':
-            st.subheader(f"{t('question_in_hindi')} {hindi_question if hindi_question != t('translation_error') else question}")
+            # Display in Hindi
+            st.subheader(f"{t('question_in_hindi')} {hindi_question}")
+            
+            # Show English translation if enabled
+            if st.session_state.show_hindi:
+                st.markdown(f"*{t('original_text')}: {english_question}*")
         else:  # English
-            st.subheader(f"Q: {question}")
+            # Display in English
+            st.subheader(f"Q: {english_question}")
             
             # Show Hindi translation if enabled
-            if st.session_state.show_hindi and hindi_question != t('translation_error'):
+            if st.session_state.show_hindi:
                 st.markdown(f"*{t('hindi_translation')}: {hindi_question}*")
         
-        # Manual translation section
-        with st.expander(f"✏️ {t('manual_translation')}", expanded=False):
-            st.write(f"**{t('enter_hindi')}:**")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.text_area(t('original_text'), value=question, height=100, disabled=True)
-            with col2:
-                current_hindi_q = st.session_state.manual_translations.get(question, "")
-                new_hindi_q = st.text_area(t('hindi_translation'), value=current_hindi_q, 
-                                         height=100, placeholder=t('hindi_text_placeholder'),
-                                         key=f"trans_q_{idx}")
-            
-            if st.button(f"💾 {t('save_translation')} - {t('question')}", key=f"save_q_{idx}"):
-                if save_manual_translation(question, new_hindi_q):
-                    st.success(t('translation_saved'))
-                    st.rerun()
-        
-        # Question voice controls
+        # Voice controls - English
         current_audio_id = f"card_{idx}_question"
         is_playing = st.session_state.audio_playing == current_audio_id
         
@@ -570,7 +597,7 @@ def show_flashcards():
         with col1:
             if st.button(t('listen_english'), key="play_question_en", disabled=is_playing):
                 with st.spinner("Generating audio..."):
-                    audio_bytes = text_to_speech(question, lang="en")
+                    audio_bytes = text_to_speech(english_question, lang="en")
                     if audio_bytes:
                         st.session_state[f"audio_{current_audio_id}"] = audio_bytes
                         st.session_state.audio_playing = current_audio_id
@@ -580,9 +607,7 @@ def show_flashcards():
         with col2:
             if st.button(t('listen_hindi'), key="play_question_hi", disabled=is_playing):
                 with st.spinner("Generating audio..."):
-                    # Use Hindi translation if available, otherwise use English
-                    text_to_speak = hindi_question if hindi_question != t('translation_error') else question
-                    audio_bytes = text_to_speech(text_to_speak, lang="hi")
+                    audio_bytes = text_to_speech(hindi_question, lang="hi")
                     if audio_bytes:
                         st.session_state[f"audio_{current_audio_id}"] = audio_bytes
                         st.session_state.audio_playing = current_audio_id
@@ -601,7 +626,7 @@ def show_flashcards():
         with col1:
             if st.button(t('download_english'), key=f"dl_q_en_{idx}", use_container_width=True):
                 with st.spinner("Generating download..."):
-                    audio_bytes = text_to_speech(question, lang="en")
+                    audio_bytes = text_to_speech(english_question, lang="en")
                     if audio_bytes:
                         filename = f"question_{idx+1}_en.mp3"
                         b64 = base64.b64encode(audio_bytes).decode()
@@ -613,8 +638,7 @@ def show_flashcards():
         with col2:
             if st.button(t('download_hindi'), key=f"dl_q_hi_{idx}", use_container_width=True):
                 with st.spinner("Generating download..."):
-                    text_to_speak = hindi_question if hindi_question != t('translation_error') else question
-                    audio_bytes = text_to_speech(text_to_speak, lang="hi")
+                    audio_bytes = text_to_speech(hindi_question, lang="hi")
                     if audio_bytes:
                         filename = f"question_{idx+1}_hi.mp3"
                         b64 = base64.b64encode(audio_bytes).decode()
@@ -642,32 +666,19 @@ def show_flashcards():
             
             # Display answer
             if st.session_state.language == 'Hindi':
-                display_answer = hindi_answer if hindi_answer != t('translation_error') else answer
-                st.markdown(f"""<div style='color:red; font-size:30px; padding:20px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>{t('answer_in_hindi')}</strong><br>{display_answer}</div>""", unsafe_allow_html=True)
+                # Display in Hindi
+                st.markdown(f"""<div style='color:red; font-size:30px; padding:20px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>{t('answer_in_hindi')}</strong><br>{hindi_answer}</div>""", unsafe_allow_html=True)
+                
+                # Show English translation if enabled
+                if st.session_state.show_hindi:
+                    st.markdown(f"*{t('original_text')}: {english_answer}*")
             else:  # English
-                st.markdown(f"""<div style='color:red; font-size:30px; padding:20px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>A:</strong><br>{answer}</div>""", unsafe_allow_html=True)
+                # Display in English
+                st.markdown(f"""<div style='color:red; font-size:30px; padding:20px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>A:</strong><br>{english_answer}</div>""", unsafe_allow_html=True)
                 
                 # Show Hindi translation if enabled
-                if st.session_state.show_hindi and hindi_answer != t('translation_error'):
+                if st.session_state.show_hindi:
                     st.markdown(f"*{t('hindi_translation')}: {hindi_answer}*")
-            
-            # Manual translation for answer
-            with st.expander(f"✏️ {t('manual_translation')} - {t('answer')}", expanded=False):
-                st.write(f"**{t('enter_hindi')}:**")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.text_area(t('original_text'), value=answer, height=100, disabled=True, key=f"orig_a_{idx}")
-                with col2:
-                    current_hindi_a = st.session_state.manual_translations.get(answer, "")
-                    new_hindi_a = st.text_area(t('hindi_translation'), value=current_hindi_a, 
-                                             height=100, placeholder=t('hindi_text_placeholder'),
-                                             key=f"trans_a_{idx}")
-                
-                if st.button(f"💾 {t('save_translation')} - {t('answer')}", key=f"save_a_{idx}"):
-                    if save_manual_translation(answer, new_hindi_a):
-                        st.success(t('translation_saved'))
-                        st.rerun()
             
             # Answer voice controls
             current_audio_id_answer = f"card_{idx}_answer"
@@ -678,7 +689,7 @@ def show_flashcards():
             with col1:
                 if st.button(t('listen_english'), key="play_answer_en", disabled=is_playing_answer):
                     with st.spinner("Generating audio..."):
-                        audio_bytes = text_to_speech(answer, lang="en")
+                        audio_bytes = text_to_speech(english_answer, lang="en")
                         if audio_bytes:
                             st.session_state[f"audio_{current_audio_id_answer}"] = audio_bytes
                             st.session_state.audio_playing = current_audio_id_answer
@@ -688,8 +699,7 @@ def show_flashcards():
             with col2:
                 if st.button(t('listen_hindi'), key="play_answer_hi", disabled=is_playing_answer):
                     with st.spinner("Generating audio..."):
-                        text_to_speak = hindi_answer if hindi_answer != t('translation_error') else answer
-                        audio_bytes = text_to_speech(text_to_speak, lang="hi")
+                        audio_bytes = text_to_speech(hindi_answer, lang="hi")
                         if audio_bytes:
                             st.session_state[f"audio_{current_audio_id_answer}"] = audio_bytes
                             st.session_state.audio_playing = current_audio_id_answer
@@ -708,7 +718,7 @@ def show_flashcards():
             with col1:
                 if st.button(t('download_english'), key=f"dl_a_en_{idx}", use_container_width=True):
                     with st.spinner("Generating download..."):
-                        audio_bytes = text_to_speech(answer, lang="en")
+                        audio_bytes = text_to_speech(english_answer, lang="en")
                         if audio_bytes:
                             filename = f"answer_{idx+1}_en.mp3"
                             b64 = base64.b64encode(audio_bytes).decode()
@@ -720,8 +730,7 @@ def show_flashcards():
             with col2:
                 if st.button(t('download_hindi'), key=f"dl_a_hi_{idx}", use_container_width=True):
                     with st.spinner("Generating download..."):
-                        text_to_speak = hindi_answer if hindi_answer != t('translation_error') else answer
-                        audio_bytes = text_to_speech(text_to_speak, lang="hi")
+                        audio_bytes = text_to_speech(hindi_answer, lang="hi")
                         if audio_bytes:
                             filename = f"answer_{idx+1}_hi.mp3"
                             b64 = base64.b64encode(audio_bytes).decode()
@@ -736,7 +745,7 @@ def show_flashcards():
             with col1:
                 if st.button(t('combined_qa') + " (EN)", key=f"dl_combined_en_{idx}", type="primary", use_container_width=True):
                     with st.spinner("Generating combined audio..."):
-                        combined_audio = generate_combined_audio(question, answer, lang="en")
+                        combined_audio = generate_combined_audio(english_question, english_answer, lang="en")
                         if combined_audio:
                             filename = f"flashcard_{idx+1}_en.mp3"
                             b64 = base64.b64encode(combined_audio).decode()
@@ -748,8 +757,8 @@ def show_flashcards():
             with col2:
                 if st.button(t('combined_bilingual'), key=f"dl_bilingual_{idx}", type="primary", use_container_width=True):
                     with st.spinner("Generating bilingual audio..."):
-                        english_content = f"Question: {question} Answer: {answer}"
-                        hindi_content = f"प्रश्न: {hindi_question if hindi_question != t('translation_error') else question} उत्तर: {hindi_answer if hindi_answer != t('translation_error') else answer}"
+                        english_content = f"Question: {english_question} Answer: {english_answer}"
+                        hindi_content = f"प्रश्न: {hindi_question} उत्तर: {hindi_answer}"
                         bilingual_audio = generate_bilingual_audio(english_content, hindi_content)
                         if bilingual_audio:
                             filename = f"flashcard_{idx+1}_bilingual.mp3"
@@ -828,6 +837,37 @@ def show_flashcards():
 def show_quiz():
     st.title(t('quiz_title'))
     
+    # TOP MENU LANGUAGE SWITCH BUTTONS for Quiz page too
+    with st.container():
+        col1, col2, col3 = st.columns([3, 2, 1])
+        
+        with col1:
+            st.markdown(f"### {t('current_language')}: **{t('english') if st.session_state.language == 'English' else t('hindi')}**")
+        
+        with col2:
+            st.markdown("### 🌐")
+        
+        with col3:
+            btn_col1, btn_col2 = st.columns(2)
+            
+            with btn_col1:
+                if st.button(f"🇺🇸 {t('english')}", 
+                           type="primary" if st.session_state.language == 'English' else "secondary",
+                           use_container_width=True,
+                           key="quiz_switch_to_english"):
+                    st.session_state.language = 'English'
+                    st.rerun()
+            
+            with btn_col2:
+                if st.button(f"🇮🇳 {t('hindi')}", 
+                           type="primary" if st.session_state.language == 'Hindi' else "secondary",
+                           use_container_width=True,
+                           key="quiz_switch_to_hindi"):
+                    st.session_state.language = 'Hindi'
+                    st.rerun()
+        
+        st.markdown("---")
+    
     if not st.session_state.quiz_started:
         st.write(t('test_knowledge'))
         st.write(f"{t('cards_available')}: {len(st.session_state.cards)}")
@@ -884,18 +924,20 @@ def show_quiz():
             st.markdown("---")
             
             if current_index < len(quiz_cards):
-                question, answer = quiz_cards[current_index]
+                card = quiz_cards[current_index]
+                english_question, english_answer = card['english']
+                hindi_question, hindi_answer = card['hindi']
                 question_num = current_index + 1
                 
                 st.subheader(f"{t('questions')} {question_num} of {len(quiz_cards)}")
                 
                 # Display question
                 if st.session_state.quiz_language == "Hindi":
-                    hindi_question = get_hindi_translation(question)
-                    display_question = hindi_question if hindi_question != t('translation_error') else question
+                    display_question = hindi_question
                     st.markdown(f'<h3 style="color:#FF0000;">{display_question}</h3>', unsafe_allow_html=True)
                 else:
-                    st.markdown(f'<h3 style="color:#FF0000;">{question}</h3>', unsafe_allow_html=True)
+                    display_question = english_question
+                    st.markdown(f'<h3 style="color:#FF0000;">{display_question}</h3>', unsafe_allow_html=True)
                 
                 st.write(f"{t('select_answer')}")
                 
@@ -906,11 +948,11 @@ def show_quiz():
                     
                     # Show correct answer
                     if st.session_state.quiz_language == "Hindi":
-                        hindi_answer = get_hindi_translation(answer)
-                        display_answer = hindi_answer if hindi_answer != t('translation_error') else answer
+                        display_answer = hindi_answer
                         st.info(f"**{t('correct_answer')}:** {display_answer}")
                     else:
-                        st.info(f"**{t('correct_answer')}:** {answer}")
+                        display_answer = english_answer
+                        st.info(f"**{t('correct_answer')}:** {display_answer}")
                     
                     # Next Question button
                     if st.button(t('next_question'), key=f"next_{current_index}", type="primary"):
@@ -922,65 +964,58 @@ def show_quiz():
                 
                 else:
                     # Not answered yet - show options for selection
-                    options = [answer]
-                    other_cards = [card for card in st.session_state.cards if card != (question, answer)]
+                    correct_answer = hindi_answer if st.session_state.quiz_language == "Hindi" else english_answer
+                    options = [correct_answer]
+                    
+                    # Get wrong options from other cards
+                    other_cards = [c for c in st.session_state.cards if c != card]
                     
                     if len(other_cards) >= 3:
                         # Get answers from other cards as wrong options
                         other_options = random.sample(other_cards, 3)
-                        options.extend([opt[1] for opt in other_options])  # Get answers
+                        for opt_card in other_options:
+                            wrong_answer = opt_card['hindi'][1] if st.session_state.quiz_language == "Hindi" else opt_card['english'][1]
+                            options.append(wrong_answer)
                     else:
                         # Generic wrong answers if not enough cards
-                        options.extend([
-                            "Not applicable in this context",
-                            "This is an incorrect interpretation",
-                            "The opposite is true"
-                        ])
+                        if st.session_state.quiz_language == "Hindi":
+                            options.extend([
+                                "यह संदर्भ में लागू नहीं है",
+                                "यह एक गलत व्याख्या है",
+                                "इसका विपरीत सत्य है"
+                            ])
+                        else:
+                            options.extend([
+                                "Not applicable in this context",
+                                "This is an incorrect interpretation",
+                                "The opposite is true"
+                            ])
                     
-                    # Translate options if in Hindi mode
-                    if st.session_state.quiz_language == "Hindi":
-                        translated_options = []
-                        for opt in options:
-                            hindi_opt = get_hindi_translation(opt)
-                            translated_options.append(hindi_opt if hindi_opt != t('translation_error') else opt)
-                        display_options = translated_options
-                    else:
-                        display_options = options
-                    
-                    random.shuffle(display_options)
+                    random.shuffle(options)
                     
                     # Use a unique key for the radio button
                     radio_key = f"quiz_radio_{current_index}"
                     selected_answer = st.radio(
                         f"{t('choose_answer')}",
-                        display_options,
+                        options,
                         key=radio_key,
                         index=None  # No default selection
                     )
                     
                     # Submit button
                     if selected_answer:
-                        # Find the original English answer corresponding to the selected translation
-                        if st.session_state.quiz_language == "Hindi":
-                            # Find which original answer this translation corresponds to
-                            for i, opt in enumerate(options):
-                                hindi_opt = get_hindi_translation(opt)
-                                if (hindi_opt == selected_answer) or (hindi_opt == t('translation_error') and opt == selected_answer):
-                                    selected_answer = opt
-                                    break
-                        
                         # Store the answer
                         st.session_state.quiz_answers[current_index] = selected_answer
                         
                         # Show immediate feedback
-                        if selected_answer == answer:
+                        if selected_answer == correct_answer:
                             st.success("✅ Correct!")
                             st.balloons()
                         else:
                             st.error("❌ Incorrect")
                         
                         # Show correct answer
-                        st.info(f"**{t('correct_answer')}:** {answer}")
+                        st.info(f"**{t('correct_answer')}:** {correct_answer}")
                         
                         # Auto-proceed after 2 seconds
                         time.sleep(2)
@@ -1016,7 +1051,8 @@ def show_quiz():
             correct_answers = 0
             for i in range(total_questions):
                 user_answer = st.session_state.quiz_answers.get(i, "")
-                correct_answer = quiz_cards[i][1]  # Get answer from (question, answer) tuple
+                card = quiz_cards[i]
+                correct_answer = card['hindi'][1] if st.session_state.quiz_language == "Hindi" else card['english'][1]
                 if user_answer == correct_answer:
                     correct_answers += 1
             
@@ -1063,6 +1099,38 @@ def show_quiz():
 # 📥 Bulk download functionality (simplified for Streamlit Cloud)
 def show_bulk_download():
     st.title(t('bulk_download'))
+    
+    # TOP MENU LANGUAGE SWITCH BUTTONS for Download page too
+    with st.container():
+        col1, col2, col3 = st.columns([3, 2, 1])
+        
+        with col1:
+            st.markdown(f"### {t('current_language')}: **{t('english') if st.session_state.language == 'English' else t('hindi')}**")
+        
+        with col2:
+            st.markdown("### 🌐")
+        
+        with col3:
+            btn_col1, btn_col2 = st.columns(2)
+            
+            with btn_col1:
+                if st.button(f"🇺🇸 {t('english')}", 
+                           type="primary" if st.session_state.language == 'English' else "secondary",
+                           use_container_width=True,
+                           key="download_switch_to_english"):
+                    st.session_state.language = 'English'
+                    st.rerun()
+            
+            with btn_col2:
+                if st.button(f"🇮🇳 {t('hindi')}", 
+                           type="primary" if st.session_state.language == 'Hindi' else "secondary",
+                           use_container_width=True,
+                           key="download_switch_to_hindi"):
+                    st.session_state.language = 'Hindi'
+                    st.rerun()
+        
+        st.markdown("---")
+    
     st.write(t('generate_download'))
     
     st.warning(t('bulk_note'))
@@ -1097,23 +1165,20 @@ def show_bulk_download():
                         processed = 0
                         progress_bar = st.progress(0)
                         
-                        for i, (question, answer) in enumerate(st.session_state.cards[:max_cards]):
+                        for i, card in enumerate(st.session_state.cards[:max_cards]):
                             # Update progress
                             progress = (i + 1) / max_cards
                             progress_bar.progress(progress)
                             
-                            # Get Hindi translations if needed
-                            if audio_lang == "Hindi":
-                                hindi_question = get_hindi_translation(question)
-                                hindi_answer = get_hindi_translation(answer)
+                            english_question, english_answer = card['english']
+                            hindi_question, hindi_answer = card['hindi']
                             
                             # Generate audio based on type and language
                             if download_type == t('question_only'):
                                 if audio_lang == "English":
-                                    audio_bytes = text_to_speech(question, lang="en")
+                                    audio_bytes = text_to_speech(english_question, lang="en")
                                 else:  # Hindi
-                                    text_to_speak = hindi_question if hindi_question != t('translation_error') else question
-                                    audio_bytes = text_to_speech(text_to_speak, lang="hi")
+                                    audio_bytes = text_to_speech(hindi_question, lang="hi")
                                 
                                 if audio_bytes:
                                     lang_suffix = "_en" if audio_lang == "English" else "_hi"
@@ -1123,10 +1188,9 @@ def show_bulk_download():
                             
                             elif download_type == t('answer_only'):
                                 if audio_lang == "English":
-                                    audio_bytes = text_to_speech(answer, lang="en")
+                                    audio_bytes = text_to_speech(english_answer, lang="en")
                                 else:  # Hindi
-                                    text_to_speak = hindi_answer if hindi_answer != t('translation_error') else answer
-                                    audio_bytes = text_to_speech(text_to_speak, lang="hi")
+                                    audio_bytes = text_to_speech(hindi_answer, lang="hi")
                                 
                                 if audio_bytes:
                                     lang_suffix = "_en" if audio_lang == "English" else "_hi"
@@ -1136,11 +1200,9 @@ def show_bulk_download():
                             
                             elif download_type == t('question_then_answer'):
                                 if audio_lang == "English":
-                                    audio_bytes = generate_combined_audio(question, answer, lang="en")
+                                    audio_bytes = generate_combined_audio(english_question, english_answer, lang="en")
                                 else:  # Hindi
-                                    text_q = hindi_question if hindi_question != t('translation_error') else question
-                                    text_a = hindi_answer if hindi_answer != t('translation_error') else answer
-                                    audio_bytes = generate_combined_audio(text_q, text_a, lang="hi")
+                                    audio_bytes = generate_combined_audio(hindi_question, hindi_answer, lang="hi")
                                 
                                 if audio_bytes:
                                     lang_suffix = "_en" if audio_lang == "English" else "_hi"
@@ -1170,6 +1232,37 @@ def show_bulk_download():
 def show_settings():
     st.subheader(t('settings'))
     
+    # TOP MENU LANGUAGE SWITCH BUTTONS for Settings page too
+    with st.container():
+        col1, col2, col3 = st.columns([3, 2, 1])
+        
+        with col1:
+            st.markdown(f"### {t('current_language')}: **{t('english') if st.session_state.language == 'English' else t('hindi')}**")
+        
+        with col2:
+            st.markdown("### 🌐")
+        
+        with col3:
+            btn_col1, btn_col2 = st.columns(2)
+            
+            with btn_col1:
+                if st.button(f"🇺🇸 {t('english')}", 
+                           type="primary" if st.session_state.language == 'English' else "secondary",
+                           use_container_width=True,
+                           key="settings_switch_to_english"):
+                    st.session_state.language = 'English'
+                    st.rerun()
+            
+            with btn_col2:
+                if st.button(f"🇮🇳 {t('hindi')}", 
+                           type="primary" if st.session_state.language == 'Hindi' else "secondary",
+                           use_container_width=True,
+                           key="settings_switch_to_hindi"):
+                    st.session_state.language = 'Hindi'
+                    st.rerun()
+        
+        st.markdown("---")
+    
     if st.session_state.cards:
         st.success(f"✅ {t('loaded_cards')} {len(st.session_state.cards)}")
     else:
@@ -1181,28 +1274,29 @@ def show_settings():
         st.write(f"**{t('file_exists')}:** {'✅ Yes' if os.path.exists(DOC_PATH) else '❌ No'}")
         if st.session_state.cards:
             st.write(f"**{t('sample_cards')}:**")
-            for i, (question, answer) in enumerate(st.session_state.cards[:3]):
-                st.write(f"{i+1}. **Q:** {question[:50]}...")
-                st.write(f"   **A:** {answer[:50]}...")
+            for i, card in enumerate(st.session_state.cards[:3]):
+                english_q, english_a = card['english']
+                hindi_q, hindi_a = card['hindi']
+                st.write(f"{i+1}. **English Q:** {english_q[:50]}...")
+                st.write(f"   **English A:** {english_a[:50]}...")
+                st.write(f"   **Hindi Q:** {hindi_q[:50]}...")
+                st.write(f"   **Hindi A:** {hindi_a[:50]}...")
                 st.write("---")
     
     # Language statistics
     with st.expander("🌐 Language Statistics"):
-        total_manual = len(st.session_state.manual_translations)
-        st.write(f"**Manual translations saved:** {total_manual}")
         st.write(f"**Current display language:** {st.session_state.language}")
-        st.write(f"**Show Hindi translation:** {'✅ Yes' if st.session_state.show_hindi else '❌ No'}")
+        st.write(f"**Show translation:** {'✅ Yes' if st.session_state.show_hindi else '❌ No'}")
+        st.write(f"**Total bilingual cards:** {len(st.session_state.cards)}")
         
-        # Clear translations button
-        if st.button("🗑️ Clear Manual Translations"):
-            st.session_state.manual_translations = {}
-            st.success("Manual translations cleared!")
-            st.rerun()
+        # Count cards with proper Hindi translations
+        hindi_cards = sum(1 for card in st.session_state.cards if card['hindi'][0] != card['english'][0])
+        st.write(f"**Cards with Hindi translations:** {hindi_cards}")
     
     # Reset button
     if st.button(t('reset_state')):
         for key in list(st.session_state.keys()):
-            if key not in ['language', 'show_hindi', 'manual_translations']:  # Keep language settings
+            if key not in ['language', 'show_hindi']:  # Keep language settings
                 del st.session_state[key]
         st.rerun()
     
@@ -1216,19 +1310,19 @@ def show_settings():
         - Quiz mode for self-testing
         - Audio generation for auditory learning in English and Hindi
         - Bulk download of study materials
-        - Manual translation input for Hindi content
+        - Easy language switching with top menu buttons
         
         **Features:**
-        - 📚 Flashcards with Q&A format
-        - 🔊 Text-to-speech for questions and answers in English & Hindi
+        - 📚 Flashcards with Q&A format in English & Hindi
+        - 🔊 Text-to-speech for questions and answers in both languages
         - 🔁 Looping audio with stop controls
-        - 📝 Interactive quiz with scoring
+        - 📝 Interactive quiz with scoring in both languages
         - 📥 Bulk audio download in multiple languages
-        - ✏️ Manual Hindi translation input
+        - 🌐 Easy language switching with top menu buttons
         - ⚙️ Easy document loading
         
         **Requirements:**
-        - Word document with Q: and A: format
+        - Word document with bilingual Q&A format
         - Internet connection for audio generation
         - Modern web browser
         """)
@@ -1253,6 +1347,14 @@ def main():
             st.success(f"**{len(st.session_state.cards)} {t('cards_loaded')}**")
         else:
             st.warning("No cards loaded")
+        
+        # Language indicator in sidebar
+        st.markdown("---")
+        st.markdown(f"**{t('current_language')}:**")
+        if st.session_state.language == 'English':
+            st.markdown("🇺🇸 **English**")
+        else:
+            st.markdown("🇮🇳 **हिंदी**")
         
         st.markdown("---")
         st.caption(t('made_with'))
