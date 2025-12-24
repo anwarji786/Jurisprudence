@@ -488,7 +488,7 @@ def load_bilingual_flashcards(doc_path):
     Expected format (as in your document):
     Q: English question
     A: English answer
-    A (हिंदी): Hindi answer (Hindi question is same as English)
+    A (हिंदी): Hindi answer
     Q: Next English question...
     """
     try:
@@ -509,9 +509,11 @@ def load_bilingual_flashcards(doc_path):
                 if english_question and english_answer:
                     # Translate English question to Hindi
                     hindi_question = translate_to_hindi(english_question)
+                    # Use Hindi answer if available, otherwise translate English answer
+                    hindi_answer_to_use = hindi_answer if hindi_answer else translate_to_hindi(english_answer)
                     cards.append({
                         'english': (english_question, english_answer),
-                        'hindi': (hindi_question, hindi_answer if hindi_answer else english_answer)
+                        'hindi': (hindi_question, hindi_answer_to_use)
                     })
                 
                 # Start new card
@@ -523,18 +525,27 @@ def load_bilingual_flashcards(doc_path):
             elif text.startswith("A:") and "(हिंदी)" not in text and english_question:
                 english_answer = text[2:].strip()
             
-            # Check for Hindi answer
-            elif "A" in text and "(हिंदी)" in text and english_question and english_answer:
-                # Extract Hindi answer text
-                hindi_answer = text.split(":", 1)[1].strip() if ":" in text else text.replace("A (हिंदी)", "").strip()
+            # Check for Hindi answer - Fixed to properly handle the format
+            elif text.startswith("A (हिंदी):") and english_question and english_answer:
+                # Extract Hindi answer text - remove "A (हिंदी):" prefix
+                hindi_answer = text[10:].strip()
+            elif "(हिंदी)" in text and english_question and english_answer:
+                # Alternative format handling
+                if ":" in text:
+                    hindi_answer = text.split(":", 1)[1].strip()
+                else:
+                    # Remove any "A" prefix and "(हिंदी)" text
+                    hindi_answer = text.replace("A", "").replace("(हिंदी)", "").strip()
         
         # Don't forget to add the last card
         if english_question and english_answer:
             # Translate English question to Hindi
             hindi_question = translate_to_hindi(english_question)
+            # Use Hindi answer if available, otherwise translate English answer
+            hindi_answer_to_use = hindi_answer if hindi_answer else translate_to_hindi(english_answer)
             cards.append({
                 'english': (english_question, english_answer),
-                'hindi': (hindi_question, hindi_answer if hindi_answer else english_answer)
+                'hindi': (hindi_question, hindi_answer_to_use)
             })
         
         if not cards:
