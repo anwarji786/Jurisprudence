@@ -10,6 +10,7 @@ from datetime import datetime
 import zipfile
 import tempfile
 import os
+import requests
 
 # ====================== IMPORTANT FOR STREAMLIT CLOUD ======================
 # Use relative path for Streamlit Cloud
@@ -245,17 +246,17 @@ UI_TRANSLATIONS = {
         'answer_in_hindi': "उत्तर:",
         'translation_loading': "हिंदी में अनुवाद हो रहा है...",
         'translation_error': "अनुवाद उपलब्ध नहीं है",
-        'enter_hindi': "हिंदी अनुवाद दर्ज करें",
-        'manual_translation': "मैनुअल अनुवाद",
-        'save_translation': "💾 अनुवाद सहेजें",
-        'translation_saved': "✅ अनुवाद सहेजा गया!",
-        'hindi_text_placeholder': "हिंदी अनुवाद यहाँ टाइप करें...",
-        'switch_to_hindi': "हिंदी में स्विच करें",
-        'switch_to_english': "अंग्रेज़ी में स्विच करें",
-        'current_language': "वर्तमान भाषा",
-        'language_switch': "🌐 भाषा स्विच",
+        'enter_hindi': "Enter Hindi Translation",
+        'manual_translation': "Manual Translation",
+        'save_translation': "💾 Save Translation",
+        'translation_saved': "✅ Translation saved!",
+        'hindi_text_placeholder': "Type Hindi translation here...",
+        'switch_to_hindi': "Switch to Hindi",
+        'switch_to_english': "Switch to English",
+        'current_language': "Current Language",
+        'language_switch': "🌐 Language Switch",
         'quiz_not_available': "⚠️ क्विज उपलब्ध नहीं है - कोई फ्लैशकार्ड लोड नहीं हुए",
-        'load_cards_first': "कृपया पहले फ्लैशकार्ड्स टैब से फ्लैशकार्ड लोड करें।"
+        'load_cards_first': "Please load flashcards first from the Flashcards tab."
     }
 }
 
@@ -266,6 +267,74 @@ def t(key):
         return UI_TRANSLATIONS[lang][key]
     # Fallback to English if translation not found
     return UI_TRANSLATIONS['English'].get(key, key)
+
+def translate_to_hindi(text):
+    """Simple English to Hindi translation using a basic dictionary"""
+    # Common legal terms translation dictionary
+    translation_dict = {
+        "Who is considered the founder of the Analytical School of Jurisprudence?": "विश्लेषणात्मक विधिशास्त्र विद्यालय के संस्थापक कौन माने जाते हैं?",
+        "What is Austin's definition of law?": "ऑस्टिन की विधि की परिभाषा क्या है?",
+        "What are the main features of the Analytical School?": "विश्लेषणात्मक विद्यालय की मुख्य विशेषताएं क्या हैं?",
+        "Name two critics of Austin's theory.": "ऑस्टिन के सिद्धांत के दो आलोचकों के नाम बताएं।",
+        "What is the Historical School of Jurisprudence concerned with?": "ऐतिहासिक विधिशास्त्र विद्यालय किससे संबंधित है?",
+        "Who is regarded as the father of the Historical School?": "ऐतिहासिक विद्यालय के जनक कौन माने जाते हैं?",
+        "What was Savigny's main argument against codification of law?": "सैविनी का कानून संहिताकरण के खिलाफ मुख्य तर्क क्या था?",
+        "Which English jurist is associated with the Historical School?": "कौन सा अंग्रेज़ न्यायविद् ऐतिहासिक विद्यालय से जुड़ा है?",
+        "What is Maine's famous theory about the evolution of law?": "विधि के विकास के बारे में मेन का प्रसिद्ध सिद्धांत क्या है?",
+        "Compare Analytical and Historical Schools in one line.": "एक पंक्ति में विश्लेषणात्मक और ऐतिहासिक विद्यालयों की तुलना करें।",
+        
+        # Common words
+        "founder": "संस्थापक",
+        "Analytical School": "विश्लेषणात्मक विद्यालय",
+        "Jurisprudence": "विधिशास्त्र",
+        "Austin": "ऑस्टिन",
+        "definition": "परिभाषा",
+        "law": "विधि",
+        "main features": "मुख्य विशेषताएं",
+        "critics": "आलोचक",
+        "theory": "सिद्धांत",
+        "Historical School": "ऐतिहासिक विद्यालय",
+        "father": "जनक",
+        "Savigny": "सैविनी",
+        "argument": "तर्क",
+        "codification": "संहिताकरण",
+        "English jurist": "अंग्रेज़ न्यायविद्",
+        "Maine": "मेन",
+        "famous theory": "प्रसिद्ध सिद्धांत",
+        "evolution": "विकास",
+        "Compare": "तुलना करें",
+        "in one line": "एक पंक्ति में",
+        "What is": "क्या है",
+        "Who is": "कौन है",
+        "Name": "नाम बताएं",
+        "What are": "क्या हैं",
+        "What was": "क्या था",
+        "Which": "कौन सा",
+        "regarded as": "माने जाते हैं",
+        "concerned with": "संबंधित है",
+        "associated with": "जुड़ा है",
+        "about": "के बारे में",
+        "the": "",
+        "of": "का",
+        "and": "और"
+    }
+    
+    # Try to find full sentence translation first
+    if text in translation_dict:
+        return translation_dict[text]
+    
+    # If not found, try to translate word by word
+    translated_words = []
+    words = text.split()
+    for word in words:
+        # Clean word (remove punctuation)
+        clean_word = word.strip('.,?!"\'()[]{}:;')
+        if clean_word in translation_dict:
+            translated_words.append(translation_dict[clean_word])
+        else:
+            translated_words.append(word)
+    
+    return " ".join(translated_words)
 
 def load_bilingual_flashcards(doc_path):
     """
@@ -292,9 +361,11 @@ def load_bilingual_flashcards(doc_path):
             if text.startswith("Q:") and "(हिंदी)" not in text:
                 # If we already have a complete card, save it
                 if english_question and english_answer:
+                    # Translate English question to Hindi
+                    hindi_question = translate_to_hindi(english_question)
                     cards.append({
                         'english': (english_question, english_answer),
-                        'hindi': (f"प्रश्न: {english_question}", hindi_answer if hindi_answer else english_answer)
+                        'hindi': (hindi_question, hindi_answer if hindi_answer else english_answer)
                     })
                 
                 # Start new card
@@ -313,9 +384,11 @@ def load_bilingual_flashcards(doc_path):
         
         # Don't forget to add the last card
         if english_question and english_answer:
+            # Translate English question to Hindi
+            hindi_question = translate_to_hindi(english_question)
             cards.append({
                 'english': (english_question, english_answer),
-                'hindi': (f"प्रश्न: {english_question}", hindi_answer if hindi_answer else english_answer)
+                'hindi': (hindi_question, hindi_answer if hindi_answer else english_answer)
             })
         
         if not cards:
@@ -565,7 +638,7 @@ def show_flashcards():
         # Display based on language preference
         if st.session_state.language == 'Hindi':
             # Display in Hindi - Use Hindi content for both question and answer
-            st.subheader(f"{hindi_question}")
+            st.subheader(f"प्रश्न: {hindi_question}")
             
             # Show English translation if enabled
             if st.session_state.show_hindi:
@@ -658,7 +731,7 @@ def show_flashcards():
             # Display answer
             if st.session_state.language == 'Hindi':
                 # Display in Hindi - Use Hindi answer
-                st.markdown(f"""<div style='color:red; font-size:30px; padding:20px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>{t('answer_in_hindi')}</strong><br>{hindi_answer}</div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div style='color:red; font-size:30px; padding:20px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>उत्तर:</strong><br>{hindi_answer}</div>""", unsafe_allow_html=True)
                 
                 # Show English translation if enabled
                 if st.session_state.show_hindi:
@@ -749,7 +822,7 @@ def show_flashcards():
                 if st.button(t('combined_bilingual'), key=f"dl_bilingual_{idx}", type="primary", use_container_width=True):
                     with st.spinner("Generating bilingual audio..."):
                         english_content = f"Question: {english_question} Answer: {english_answer}"
-                        hindi_content = f"प्रश्न: {english_question} उत्तर: {hindi_answer}"
+                        hindi_content = f"प्रश्न: {hindi_question} उत्तर: {hindi_answer}"
                         bilingual_audio = generate_bilingual_audio(english_content, hindi_content)
                         if bilingual_audio:
                             filename = f"flashcard_{idx+1}_bilingual.mp3"
@@ -947,10 +1020,10 @@ def show_quiz():
                 # Display question
                 if st.session_state.quiz_language == "Hindi":
                     display_question = hindi_question
-                    st.markdown(f'<h3 style="color:#FF0000;">{display_question}</h3>', unsafe_allow_html=True)
+                    st.markdown(f'<h3 style="color:#FF0000;">प्रश्न: {display_question}</h3>', unsafe_allow_html=True)
                 else:
                     display_question = english_question
-                    st.markdown(f'<h3 style="color:#FF0000;">{display_question}</h3>', unsafe_allow_html=True)
+                    st.markdown(f'<h3 style="color:#FF0000;">Q: {display_question}</h3>', unsafe_allow_html=True)
                 
                 st.write(f"{t('select_answer')}")
                 
