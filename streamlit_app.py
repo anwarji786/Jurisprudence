@@ -294,7 +294,7 @@ def load_bilingual_flashcards(doc_path):
                 if english_question and english_answer:
                     cards.append({
                         'english': (english_question, english_answer),
-                        'hindi': (english_question, hindi_answer if hindi_answer else english_answer)
+                        'hindi': (f"प्रश्न: {english_question}", hindi_answer if hindi_answer else english_answer)
                     })
                 
                 # Start new card
@@ -315,7 +315,7 @@ def load_bilingual_flashcards(doc_path):
         if english_question and english_answer:
             cards.append({
                 'english': (english_question, english_answer),
-                'hindi': (english_question, hindi_answer if hindi_answer else english_answer)
+                'hindi': (f"प्रश्न: {english_question}", hindi_answer if hindi_answer else english_answer)
             })
         
         if not cards:
@@ -564,8 +564,8 @@ def show_flashcards():
         
         # Display based on language preference
         if st.session_state.language == 'Hindi':
-            # Display in Hindi
-            st.subheader(f"{t('question_in_hindi')} {hindi_question}")
+            # Display in Hindi - Use Hindi content for both question and answer
+            st.subheader(f"{hindi_question}")
             
             # Show English translation if enabled
             if st.session_state.show_hindi:
@@ -657,7 +657,7 @@ def show_flashcards():
             
             # Display answer
             if st.session_state.language == 'Hindi':
-                # Display in Hindi
+                # Display in Hindi - Use Hindi answer
                 st.markdown(f"""<div style='color:red; font-size:30px; padding:20px; border-left:5px solid #4CAF50; background-color:#f9f9f9; border-radius:5px; margin:10px 0;'><strong>{t('answer_in_hindi')}</strong><br>{hindi_answer}</div>""", unsafe_allow_html=True)
                 
                 # Show English translation if enabled
@@ -749,7 +749,7 @@ def show_flashcards():
                 if st.button(t('combined_bilingual'), key=f"dl_bilingual_{idx}", type="primary", use_container_width=True):
                     with st.spinner("Generating bilingual audio..."):
                         english_content = f"Question: {english_question} Answer: {english_answer}"
-                        hindi_content = f"प्रश्न: {hindi_question} उत्तर: {hindi_answer}"
+                        hindi_content = f"प्रश्न: {english_question} उत्तर: {hindi_answer}"
                         bilingual_audio = generate_bilingual_audio(english_content, hindi_content)
                         if bilingual_audio:
                             filename = f"flashcard_{idx+1}_bilingual.mp3"
