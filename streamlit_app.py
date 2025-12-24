@@ -146,7 +146,9 @@ UI_TRANSLATIONS = {
         'switch_to_hindi': "Switch to Hindi",
         'switch_to_english': "Switch to English",
         'current_language': "Current Language",
-        'language_switch': "🌐 Language Switch"
+        'language_switch': "🌐 Language Switch",
+        'quiz_not_available': "⚠️ Quiz not available - no flashcards loaded",
+        'load_cards_first': "Please load flashcards first from the Flashcards tab."
     },
     'Hindi': {
         'app_title': "एलएलबी तैयारी फ्लैशकार्ड्स वॉयसओवर के साथ",
@@ -251,7 +253,9 @@ UI_TRANSLATIONS = {
         'switch_to_hindi': "हिंदी में स्विच करें",
         'switch_to_english': "अंग्रेज़ी में स्विच करें",
         'current_language': "वर्तमान भाषा",
-        'language_switch': "🌐 भाषा स्विच"
+        'language_switch': "🌐 भाषा स्विच",
+        'quiz_not_available': "⚠️ क्विज उपलब्ध नहीं है - कोई फ्लैशकार्ड लोड नहीं हुए",
+        'load_cards_first': "कृपया पहले फ्लैशकार्ड्स टैब से फ्लैशकार्ड लोड करें।"
     }
 }
 
@@ -292,17 +296,20 @@ def load_bilingual_flashcards(doc_path):
             elif text.startswith("A:") and "(हिंदी)" not in text and english_question:
                 english_answer = text[2:].strip()
             # Check for Hindi question
-            elif text.startswith("Q") and "(हिंदी)" in text:
-                hindi_question = text.split(":", 1)[1].strip() if ":" in text else text
+            elif "Q" in text and "(हिंदी)" in text:
+                # Extract Hindi question text
+                hindi_question = text.split(":", 1)[1].strip() if ":" in text else text.replace("Q (हिंदी)", "").strip()
             # Check for Hindi answer
-            elif text.startswith("A") and "(हिंदी)" in text and hindi_question:
-                hindi_answer = text.split(":", 1)[1].strip() if ":" in text else text
+            elif "A" in text and "(हिंदी)" in text and hindi_question:
+                # Extract Hindi answer text
+                hindi_answer = text.split(":", 1)[1].strip() if ":" in text else text.replace("A (हिंदी)", "").strip()
                 
                 # If we have both English and Hindi, create a bilingual card
                 if english_question and english_answer:
                     cards.append({
                         'english': (english_question, english_answer),
-                        'hindi': (hindi_question, hindi_answer) if hindi_question and hindi_answer else (english_question, english_answer)
+                        'hindi': (hindi_question if hindi_question else english_question, 
+                                 hindi_answer if hindi_answer else english_answer)
                     })
                     
                     # Reset for next card
@@ -310,13 +317,6 @@ def load_bilingual_flashcards(doc_path):
                     english_answer = None
                     hindi_question = None
                     hindi_answer = None
-        
-        # If we have English cards but no Hindi translations, create them with English text
-        if not cards and english_question and english_answer:
-            cards.append({
-                'english': (english_question, english_answer),
-                'hindi': (english_question, english_answer)
-            })
         
         if not cards:
             st.warning(t('no_flashcards'))
@@ -482,15 +482,6 @@ def generate_bilingual_audio(english_text, hindi_text):
         st.error(f"Error generating bilingual audio: {e}")
         return None
 
-# Language switch function
-def switch_language():
-    """Switch between English and Hindi"""
-    if st.session_state.language == 'English':
-        st.session_state.language = 'Hindi'
-    else:
-        st.session_state.language = 'English'
-    st.rerun()
-
 # 🎴 Display flashcards with voiceover
 def show_flashcards():
     st.title(t('app_title'))
@@ -544,7 +535,7 @@ def show_flashcards():
     # Show document info
     with st.expander(t('document_info'), expanded=False):
         st.write(f"**{t('document_info')}:** Law Preparation.docx")
-        st.write(f"**{t('total_cards')}:** {len(st.session_state.cards)}")
+        st.write(f"**{t('total_cards')}:** {len(st.session_state.cards) if st.session_state.cards else 0}")
         if st.session_state.cards:
             sample_question = st.session_state.cards[0]['english'][0]
             st.write(f"**{t('sample_question')}:** {sample_question[:50]}...")
@@ -868,15 +859,37 @@ def show_quiz():
         
         st.markdown("---")
     
+    # Check if cards are loaded
+    if not st.session_state.cards:
+        st.warning(t('quiz_not_available'))
+        st.info(t('load_cards_first'))
+        return
+    
     if not st.session_state.quiz_started:
         st.write(t('test_knowledge'))
         st.write(f"{t('cards_available')}: {len(st.session_state.cards)}")
         
+        # FIXED: Ensure we have valid values for the slider
+        total_cards = len(st.session_state.cards)
+        if total_cards == 0:
+            st.error("No flashcards available for quiz.")
+            return
+        
+        # Set min, max, and default values properly
+        min_questions = 3
+        max_questions = min(20, total_cards)
+        default_questions = min(10, total_cards)
+        
+        # Ensure min value is not greater than max
+        if min_questions > max_questions:
+            st.error(f"Need at least {min_questions} flashcards for a quiz. Currently have {total_cards}.")
+            return
+        
         num_questions = st.slider(
             t('num_questions'),
-            min_value=3,
-            max_value=min(20, len(st.session_state.cards)),
-            value=min(10, len(st.session_state.cards))
+            min_value=min_questions,
+            max_value=max_questions,
+            value=default_questions
         )
         
         # Language selection for quiz
@@ -1135,6 +1148,11 @@ def show_bulk_download():
     
     st.warning(t('bulk_note'))
     
+    # Check if cards are loaded
+    if not st.session_state.cards:
+        st.warning("No flashcards available for download.")
+        return
+    
     download_type = st.selectbox(
         t('select_type'),
         [t('question_only'), t('answer_only'), t('question_then_answer')]
@@ -1287,11 +1305,12 @@ def show_settings():
     with st.expander("🌐 Language Statistics"):
         st.write(f"**Current display language:** {st.session_state.language}")
         st.write(f"**Show translation:** {'✅ Yes' if st.session_state.show_hindi else '❌ No'}")
-        st.write(f"**Total bilingual cards:** {len(st.session_state.cards)}")
+        st.write(f"**Total bilingual cards:** {len(st.session_state.cards) if st.session_state.cards else 0}")
         
         # Count cards with proper Hindi translations
-        hindi_cards = sum(1 for card in st.session_state.cards if card['hindi'][0] != card['english'][0])
-        st.write(f"**Cards with Hindi translations:** {hindi_cards}")
+        if st.session_state.cards:
+            hindi_cards = sum(1 for card in st.session_state.cards if card['hindi'][0] != card['english'][0])
+            st.write(f"**Cards with Hindi translations:** {hindi_cards}")
     
     # Reset button
     if st.button(t('reset_state')):
