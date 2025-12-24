@@ -268,34 +268,75 @@ def t(key):
     return UI_TRANSLATIONS['English'].get(key, key)
 
 def translate_to_hindi(text):
-    """Simple English to Hindi translation using a comprehensive dictionary"""
-    # Comprehensive legal terms translation dictionary
+    """English to Hindi translation with comprehensive coverage"""
+    # If the text is already in Hindi (contains Devanagari script), return as is
+    if re.search(r'[\u0900-\u097F]', text):
+        return text
+    
+    # Comprehensive translation dictionary
     translation_dict = {
-        # Complete sentences from your document
-        "Who is considered the founder of the Analytical School of Jurisprudence?": "विश्लेषणात्मक विधिशास्त्र विद्यालय के संस्थापक कौन माने जाते हैं?",
-        "What is Austin's definition of law?": "ऑस्टिन की विधि की परिभाषा क्या है?",
-        "What are the main features of the Analytical School?": "विश्लेषणात्मक विद्यालय की मुख्य विशेषताएं क्या हैं?",
-        "Name two critics of Austin's theory.": "ऑस्टिन के सिद्धांत के दो आलोचकों के नाम बताएं।",
-        "What is the Historical School of Jurisprudence concerned with?": "ऐतिहासिक विधिशास्त्र विद्यालय किससे संबंधित है?",
-        "Who is regarded as the father of the Historical School?": "ऐतिहासिक विद्यालय के जनक कौन माने जाते हैं?",
-        "What was Savigny's main argument against codification of law?": "सैविनी का कानून संहिताकरण के खिलाफ मुख्य तर्क क्या था?",
-        "Which English jurist is associated with the Historical School?": "कौन सा अंग्रेज़ न्यायविद् ऐतिहासिक विद्यालय से जुड़ा है?",
-        "What is Maine's famous theory about the evolution of law?": "विधि के विकास के बारे में मेन का प्रसिद्ध सिद्धांत क्या है?",
-        "Compare Analytical and Historical Schools in one line.": "एक पंक्ति में विश्लेषणात्मक और ऐतिहासिक विद्यालयों की तुलना करें।",
+        # Complete questions and answers from your document
+        "Who is considered the founder of the Analytical School of Jurisprudence?": 
+            "विश्लेषणात्मक विधिशास्त्र विद्यालय के संस्थापक कौन माने जाते हैं?",
         
-        # Answers from your document
-        "John Austin (1790-1859), an English jurist, is regarded as the founder.": "जॉन ऑस्टिन (1790-1859), एक अंग्रेज़ न्यायविद्, को विश्लेषणात्मक विधिशास्त्र विद्यालय का संस्थापक माना जाता है।",
-        "Law is the command of the sovereign backed by sanctions. It is a rule laid down by a political superior to political inferiors.": "विधि संप्रभु का आदेश है जो दंड द्वारा समर्थित होता है। यह राजनीतिक श्रेष्ठ द्वारा राजनीतिक अधीनस्थों पर लागू किया गया नियम है।",
-        "- Focus on law as it IS, not as it ought to be.\n- Law is a command of the sovereign.\n- Separation of law from morality.\n- Emphasis on sanctions and enforceability.": "- विधि को जैसा है वैसा ही देखना, जैसा होना चाहिए वैसा नहीं।\n- विधि संप्रभु का आदेश है।\n- विधि और नैतिकता को अलग करना।\n- दंड और प्रवर्तन पर बल देना।",
-        "H.L.A. Hart (criticized Austin's command theory, proposing the 'rule of recognition') and Sir Henry Maine (emphasized historical evolution of law).": "एच.एल.ए. हार्ट (ऑस्टिन के आदेश सिद्धांत की आलोचना की और 'मान्यता का नियम' प्रस्तावित किया) तथा सर हेनरी मेन (विधि के ऐतिहासिक विकास पर बल दिया)।",
-        "It studies the origin and development of law as a product of social customs, traditions, and the collective consciousness of the people.": "यह विधि की उत्पत्ति और विकास का अध्ययन करता है, जिसे सामाजिक रीति-रिवाजों, परंपराओं और जनचेतना का परिणाम माना जाता है।",
-        "Friedrich Carl von Savigny (1779-1861), a German jurist.": "फ्रेडरिक कार्ल वॉन सैविनी (1779-1861), एक जर्मन न्यायविद्, को ऐतिहासिक विधिशास्त्र विद्यालय का जनक माना जाता है।",
-        "Savigny argued that law grows with the people and should evolve naturally from customs and Volksgeist (spirit of the people), not be imposed artificially.": "सैविनी ने कहा कि विधि जनता के साथ बढ़ती है और इसे रीति-रिवाजों तथा 'वोल्क्सगाइस्ट' (जन-आत्मा) से स्वाभाविक रूप से विकसित होना चाहिए, इसे कृत्रिम रूप से लागू नहीं किया जाना चाहिए।",
-        "Sir Henry Maine (1822-1888), author of 'Ancient Law'.": "सर हेनरी मेन (1822-1888), 'एंशिएंट लॉ' के लेखक।",
-        "Law evolves from 'Status to Contract' --- societies move from relationships based on fixed status (family, caste) to voluntary agreements (contracts).": "विधि 'स्थिति से अनुबंध' की ओर विकसित होती है --- समाज स्थायी स्थिति (परिवार, जाति) पर आधारित संबंधों से स्वेच्छा से किए गए अनुबंधों की ओर बढ़ता है।",
-        "Analytical School: Law = sovereign command.\nHistorical School: Law = evolving from customs and social traditions.": "विश्लेषणात्मक विद्यालय: विधि = संप्रभु का आदेश।\nऐतिहासिक विद्यालय: विधि = रीति-रिवाजों और सामाजिक परंपराओं से विकसित।",
+        "John Austin (1790–1859), an English jurist, is regarded as the founder.": 
+            "जॉन ऑस्टिन (1790–1859), एक अंग्रेज़ न्यायविद्, को विश्लेषणात्मक विधिशास्त्र विद्यालय का संस्थापक माना जाता है।",
         
-        # Common words and phrases
+        "What is Austin's definition of law?": 
+            "ऑस्टिन की विधि की परिभाषा क्या है?",
+        
+        "Law is the command of the sovereign backed by sanctions. It is a rule laid down by a political superior to political inferiors.": 
+            "विधि संप्रभु का आदेश है जो दंड द्वारा समर्थित होता है। यह राजनीतिक श्रेष्ठ द्वारा राजनीतिक अधीनस्थों पर लागू किया गया नियम है।",
+        
+        "What are the main features of the Analytical School?": 
+            "विश्लेषणात्मक विद्यालय की मुख्य विशेषताएं क्या हैं?",
+        
+        "- Focus on law as it IS, not as it ought to be.\n- Law is a command of the sovereign.\n- Separation of law from morality.\n- Emphasis on sanctions and enforceability.": 
+            "- विधि को जैसा है वैसा ही देखना, जैसा होना चाहिए वैसा नहीं।\n- विधि संप्रभु का आदेश है।\n- विधि और नैतिकता को अलग करना।\n- दंड और प्रवर्तन पर बल देना।",
+        
+        "Name two critics of Austin's theory.": 
+            "ऑस्टिन के सिद्धांत के दो आलोचकों के नाम बताएं।",
+        
+        "H.L.A. Hart (criticized Austin's command theory, proposing the 'rule of recognition') and Sir Henry Maine (emphasized historical evolution of law).": 
+            "एच.एल.ए. हार्ट (ऑस्टिन के आदेश सिद्धांत की आलोचना की और 'मान्यता का नियम' प्रस्तावित किया) तथा सर हेनरी मेन (विधि के ऐतिहासिक विकास पर बल दिया)।",
+        
+        "What is the Historical School of Jurisprudence concerned with?": 
+            "ऐतिहासिक विधिशास्त्र विद्यालय किससे संबंधित है?",
+        
+        "It studies the origin and development of law as a product of social customs, traditions, and the collective consciousness of the people.": 
+            "यह विधि की उत्पत्ति और विकास का अध्ययन करता है, जिसे सामाजिक रीति-रिवाजों, परंपराओं और जनचेतना का परिणाम माना जाता है।",
+        
+        "Who is regarded as the father of the Historical School?": 
+            "ऐतिहासिक विद्यालय के जनक कौन माने जाते हैं?",
+        
+        "Friedrich Carl von Savigny (1779–1861), a German jurist.": 
+            "फ्रेडरिक कार्ल वॉन सैविनी (1779–1861), एक जर्मन न्यायविद्, को ऐतिहासिक विधिशास्त्र विद्यालय का जनक माना जाता है।",
+        
+        "What was Savigny's main argument against codification of law?": 
+            "सैविनी का कानून संहिताकरण के खिलाफ मुख्य तर्क क्या था?",
+        
+        "Savigny argued that law grows with the people and should evolve naturally from customs and Volksgeist (spirit of the people), not be imposed artificially.": 
+            "सैविनी ने कहा कि विधि जनता के साथ बढ़ती है और इसे रीति-रिवाजों तथा 'वोल्क्सगाइस्ट' (जन-आत्मा) से स्वाभाविक रूप से विकसित होना चाहिए, इसे कृत्रिम रूप से लागू नहीं किया जाना चाहिए।",
+        
+        "Which English jurist is associated with the Historical School?": 
+            "कौन सा अंग्रेज़ न्यायविद् ऐतिहासिक विद्यालय से जुड़ा है?",
+        
+        "Sir Henry Maine (1822–1888), author of 'Ancient Law'.": 
+            "सर हेनरी मेन (1822–1888), 'एंशिएंट लॉ' के लेखक।",
+        
+        "What is Maine's famous theory about the evolution of law?": 
+            "विधि के विकास के बारे में मेन का प्रसिद्ध सिद्धांत क्या है?",
+        
+        "Law evolves from 'Status to Contract' --- societies move from relationships based on fixed status (family, caste) to voluntary agreements (contracts).": 
+            "विधि 'स्थिति से अनुबंध' की ओर विकसित होती है --- समाज स्थायी स्थिति (परिवार, जाति) पर आधारित संबंधों से स्वेच्छा से किए गए अनुबंधों की ओर बढ़ता है।",
+        
+        "Compare Analytical and Historical Schools in one line.": 
+            "एक पंक्ति में विश्लेषणात्मक और ऐतिहासिक विद्यालयों की तुलना करें।",
+        
+        "Analytical School: Law = sovereign command.\nHistorical School: Law = evolving from customs and social traditions.": 
+            "विश्लेषणात्मक विद्यालय: विधि = संप्रभु का आदेश।\nऐतिहासिक विद्यालय: विधि = रीति-रिवाजों और सामाजिक परंपराओं से विकसित।",
+        
+        # Individual words and phrases
         "founder": "संस्थापक",
         "Analytical School": "विश्लेषणात्मक विद्यालय",
         "Jurisprudence": "विधिशास्त्र",
@@ -316,119 +357,130 @@ def translate_to_hindi(text):
         "evolution": "विकास",
         "Compare": "तुलना करें",
         "in one line": "एक पंक्ति में",
-        "What is": "क्या है",
         "Who is": "कौन है",
-        "Name": "नाम बताएं",
+        "What is": "क्या है",
         "What are": "क्या हैं",
         "What was": "क्या था",
         "Which": "कौन सा",
-        "regarded as": "माने जाते हैं",
-        "concerned with": "संबंधित है",
-        "associated with": "जुड़ा है",
-        "about": "के बारे में",
-        "the": "",
-        "of": "का",
-        "and": "और",
-        "is": "है",
-        "are": "हैं",
-        "was": "था",
-        "command": "आदेश",
-        "sovereign": "संप्रभु",
-        "sanctions": "दंड",
-        "rule": "नियम",
+        "Name": "नाम बताएं",
+        "regarded as": "माना जाता है",
+        "considered": "माने जाते हैं",
+        "an English jurist": "एक अंग्रेज़ न्यायविद्",
+        "is regarded as": "को माना जाता है",
+        "the founder": "संस्थापक",
+        "command of the sovereign": "संप्रभु का आदेश",
+        "backed by sanctions": "दंड द्वारा समर्थित",
+        "It is a rule": "यह एक नियम है",
         "laid down": "लागू किया गया",
-        "political": "राजनीतिक",
-        "superior": "श्रेष्ठ",
-        "inferiors": "अधीनस्थ",
-        "focus": "ध्यान",
+        "by a political superior": "राजनीतिक श्रेष्ठ द्वारा",
+        "to political inferiors": "राजनीतिक अधीनस्थों पर",
+        "Focus on": "ध्यान देना",
         "as it IS": "जैसा है",
-        "as it ought to be": "जैसा होना चाहिए",
-        "separation": "अलग करना",
-        "morality": "नैतिकता",
-        "emphasis": "बल देना",
+        "not as it ought to be": "जैसा होना चाहिए वैसा नहीं",
+        "Separation of": "अलग करना",
+        "from morality": "नैतिकता से",
+        "Emphasis on": "बल देना",
         "enforceability": "प्रवर्तन",
-        "studies": "अध्ययन करता है",
-        "origin": "उत्पत्ति",
-        "development": "विकास",
-        "product": "परिणाम",
-        "social customs": "सामाजिक रीति-रिवाज",
+        "H.L.A. Hart": "एच.एल.ए. हार्ट",
+        "criticized": "आलोचना की",
+        "command theory": "आदेश सिद्धांत",
+        "proposing": "प्रस्तावित किया",
+        "rule of recognition": "मान्यता का नियम",
+        "Sir Henry Maine": "सर हेनरी मेन",
+        "emphasized": "बल दिया",
+        "historical evolution": "ऐतिहासिक विकास",
+        "It studies": "यह अध्ययन करता है",
+        "the origin": "उत्पत्ति",
+        "and development": "और विकास",
+        "as a product": "एक परिणाम के रूप में",
+        "of social customs": "सामाजिक रीति-रिवाजों का",
         "traditions": "परंपराएं",
-        "collective consciousness": "जनचेतना",
-        "people": "जनता",
-        "German": "जर्मन",
-        "grows": "बढ़ती है",
-        "evolve": "विकसित होना",
+        "and the collective consciousness": "और जनचेतना",
+        "of the people": "जनता की",
+        "Friedrich Carl von Savigny": "फ्रेडरिक कार्ल वॉन सैविनी",
+        "a German jurist": "एक जर्मन न्यायविद्",
+        "grows with the people": "जनता के साथ बढ़ती है",
+        "should evolve": "विकसित होना चाहिए",
         "naturally": "स्वाभाविक रूप से",
-        "customs": "रीति-रिवाज",
+        "from customs": "रीति-रिवाजों से",
         "Volksgeist": "वोल्क्सगाइस्ट",
         "spirit of the people": "जन-आत्मा",
-        "imposed": "लागू किया",
+        "not be imposed": "लागू नहीं किया जाना चाहिए",
         "artificially": "कृत्रिम रूप से",
         "author": "लेखक",
         "Ancient Law": "एंशिएंट लॉ",
-        "evolves": "विकसित होती है",
+        "evolves from": "से विकसित होती है",
         "Status to Contract": "स्थिति से अनुबंध",
-        "societies": "समाज",
-        "move": "बढ़ता है",
-        "relationships": "संबंध",
+        "societies move": "समाज बढ़ता है",
+        "from relationships": "संबंधों से",
         "based on": "पर आधारित",
         "fixed status": "स्थायी स्थिति",
         "family": "परिवार",
         "caste": "जाति",
-        "voluntary": "स्वेच्छा से",
-        "agreements": "अनुबंध",
+        "to voluntary agreements": "स्वेच्छा से किए गए अनुबंधों की ओर",
         "contracts": "अनुबंध",
         "sovereign command": "संप्रभु का आदेश",
-        "evolving": "विकसित होना",
+        "evolving from": "से विकसित होना",
         "social traditions": "सामाजिक परंपराएं"
     }
     
-    # Try to find full sentence translation first
+    # First, try to find exact match for the complete text
     if text in translation_dict:
         return translation_dict[text]
     
-    # Try to find translation line by line for multiline text
-    lines = text.split('\n')
-    translated_lines = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            translated_lines.append("")
+    # If not found, try to translate paragraph by paragraph
+    paragraphs = text.split('\n')
+    translated_paragraphs = []
+    
+    for paragraph in paragraphs:
+        if not paragraph.strip():
+            translated_paragraphs.append("")
             continue
             
         # Check for bullet points
-        if line.startswith('- '):
-            bullet_text = line[2:].strip()
+        if paragraph.strip().startswith('-'):
+            # Handle bullet points
+            bullet_text = paragraph.strip()[1:].strip()
             if bullet_text in translation_dict:
-                translated_lines.append(f"- {translation_dict[bullet_text]}")
+                translated_paragraphs.append(f"- {translation_dict[bullet_text]}")
             else:
-                # Try to translate word by word
+                # Translate bullet point word by word
                 translated_words = []
                 words = bullet_text.split()
                 for word in words:
-                    clean_word = word.strip('.,?!"\'()[]{}:;')
+                    clean_word = re.sub(r'[^\w\s-]', '', word)
                     if clean_word in translation_dict:
                         translated_words.append(translation_dict[clean_word])
                     else:
                         translated_words.append(word)
-                translated_lines.append(f"- {' '.join(translated_words)}")
+                translated_paragraphs.append(f"- {' '.join(translated_words)}")
         else:
-            # Check for entire line translation
-            if line in translation_dict:
-                translated_lines.append(translation_dict[line])
+            # Try to translate the whole paragraph
+            if paragraph in translation_dict:
+                translated_paragraphs.append(translation_dict[paragraph])
             else:
-                # Try to translate word by word
-                translated_words = []
-                words = line.split()
-                for word in words:
-                    clean_word = word.strip('.,?!"\'()[]{}:;')
-                    if clean_word in translation_dict:
-                        translated_words.append(translation_dict[clean_word])
+                # Translate sentence by sentence
+                sentences = re.split(r'(?<=[.!?])\s+', paragraph)
+                translated_sentences = []
+                
+                for sentence in sentences:
+                    if sentence in translation_dict:
+                        translated_sentences.append(translation_dict[sentence])
                     else:
-                        translated_words.append(word)
-                translated_lines.append(' '.join(translated_words))
+                        # Translate word by word as last resort
+                        translated_words = []
+                        words = sentence.split()
+                        for word in words:
+                            clean_word = re.sub(r'[^\w\s-]', '', word)
+                            if clean_word in translation_dict:
+                                translated_words.append(translation_dict[clean_word])
+                            else:
+                                translated_words.append(word)
+                        translated_sentences.append(' '.join(translated_words))
+                
+                translated_paragraphs.append(' '.join(translated_sentences))
     
-    return '\n'.join(translated_lines)
+    return '\n'.join(translated_paragraphs)
 
 def load_bilingual_flashcards(doc_path):
     """
